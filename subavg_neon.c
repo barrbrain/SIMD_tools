@@ -40,7 +40,7 @@ static void subtract_average_neon(int16_t *buf, int width, int height,
   const int16_t *const end = buf + height * CFL_BUF_LINE;
   const int16_t *sum_buf = buf;
 
-  int32_t sum;
+  int32_t sum = 0;
   do {
     int16x4_t l0 = vld1_s16(sum_buf);
     int16x4_t l1 = vld1_s16(sum_buf + CFL_BUF_LINE);
@@ -82,6 +82,17 @@ void test_subtract_average_neon(int width, int height, int round_offset,
 
   assert_buf_equals(c_buf, neon_buf, width, height, CFL_BUF_LINE);
 }
+
+#define subtract_average(arch, width, height, round_offset, numpel_log2)    \
+  void subtract_average_##width##x##height##_##arch(int16_t *buf) {         \
+    subtract_average_##arch(buf, width, height, round_offset, numpel_log2); \
+  }
+
+#define subtract_functions(arch) \
+  subtract_average(arch, 4, 4, 8, 4) subtract_average(arch, 4, 8, 16, 5)
+
+subtract_functions(c);
+subtract_functions(neon);
 
 int main(void) {
   test_subtract_average_neon(4, 4, 8, 4);

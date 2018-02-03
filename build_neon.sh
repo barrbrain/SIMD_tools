@@ -2,7 +2,7 @@
 set -e
 
 COMPILER=aarch64-linux-gnu-gcc
-FLAGS="-Wall -march=armv8-a -O3"
+FLAGS="-Wall -Werror -march=armv8-a -O3"
 
 $COMPILER -S $FLAGS $1.c -o $1.s
 $COMPILER $FLAGS $1.c -o $1
