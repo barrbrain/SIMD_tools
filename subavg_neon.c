@@ -1,10 +1,10 @@
 
-#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 
 #include <arm_neon.h>
 
+#include "assert_data.h"
 #include "gen_data.h"
 #include "neon_print.h"
 
@@ -22,15 +22,6 @@ static void subtract_average_c(int16_t *buf, int width, int height,
   for (int j = 0; j < height; j++) {
     for (int i = 0; i < width; i++) {
       buf[j * CFL_BUF_LINE + i] -= avg;
-    }
-  }
-}
-
-void assert_buf_equals(int16_t *expected, int16_t *actual, int width,
-                       int height, int stride) {
-  for (int j = 0; j < height; j++) {
-    for (int i = 0; i < width; i++) {
-      assert(expected[j * stride + i] == actual[j * stride + i]);
     }
   }
 }
@@ -63,20 +54,6 @@ static void subtract_average_neon(int16_t *buf, int width, int height,
 
     buf += CFL_BUF_LINE;
   } while (buf < end);
-}
-
-void test_subtract_average_neon(int width, int height, int round_offset,
-                                int numpel_log2) {
-  int16_t c_buf[CFL_BUF_LINE * CFL_BUF_LINE] = {0};
-  int16_t neon_buf[CFL_BUF_LINE * CFL_BUF_LINE] = {0};
-
-  fill_buf(c_buf, width, height, CFL_BUF_LINE);
-  fill_buf(neon_buf, width, height, CFL_BUF_LINE);
-
-  subtract_average_c(c_buf, width, height, round_offset, numpel_log2);
-  subtract_average_neon(neon_buf, width, height, round_offset, numpel_log2);
-
-  assert_buf_equals(c_buf, neon_buf, width, height, CFL_BUF_LINE);
 }
 
 #define subtract_average(arch, width, height, round_offset, numpel_log2)    \
