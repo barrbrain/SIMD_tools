@@ -1,5 +1,8 @@
 #include <stdio.h>
 
+#include <immintrin.h>
+#include <tmmintrin.h>
+
 void print128_num8(__m128i var) {
   int8_t *val = (int8_t *)&var;
   printf(
