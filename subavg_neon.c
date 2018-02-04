@@ -44,16 +44,13 @@ static void subtract_average_neon(int16_t *buf, int width, int height,
     int32x2_t a2 = vadd_s32(vpaddl_s16(a0), vpaddl_s16(a1));
     sum += vaddv_s32(a2);
 
-    sum_buf += 4 * CFL_BUF_LINE;
-  } while (sum_buf < end);
+  } while ((sum_buf += 4 * CFL_BUF_LINE) < end);
 
   const int16x4_t avg_16x4 = vdup_n_s16((sum - round_offset) >> numpel_log2);
 
   do {
     vst1_s16(buf, vsub_s16(vld1_s16(buf), avg_16x4));
-
-    buf += CFL_BUF_LINE;
-  } while (buf < end);
+  } while ((buf += CFL_BUF_LINE) < end);
 }
 
 #define subtract_average(arch, width, height, round_offset, numpel_log2)    \
