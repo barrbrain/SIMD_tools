@@ -54,14 +54,11 @@ static void subtract_average_neon(int16_t *buf, int width, int height,
 
   sum_32x4 = vaddq_s32(sum_32x4, flip);
   sum_32x4 = vaddq_s32(sum_32x4, vrev64q_s32(sum_32x4));
-  printq_s32(sum_32x4, "Hor Fill");
 
   const int32x4_t shift = vdupq_n_s32(-numpel_log2);
   int32x4_t avg = vqrshlq_s32(sum_32x4, shift);
-  printq_s32(avg, "Average");
   int16x4_t avg_16x4 = vqmovn_s32(avg);
 
-  // TODO PRINT THIS TO SEE IF IT WORKS
   // TODO SWITCH FROM INT TO UINT IN SUM ONLY
   if (width == 4) {
     do {
