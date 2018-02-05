@@ -1,6 +1,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 
 #include <arm_neon.h>
 
@@ -9,6 +10,10 @@
 #include "neon_print.h"
 
 #define CFL_BUF_LINE (32)
+
+static double elapsed_seconds(struct timespec *t1, struct timespec *t2) {
+  return 1e-9 * t2->tv_nsec + t2->tv_sec - 1e-9 * t1->tv_nsec - t1->tv_sec;
+}
 
 static void subtract_average_c(int16_t *buf, int width, int height,
                                int round_offset, int numpel_log2) {
@@ -86,12 +91,19 @@ static void subtract_average_neon(int16_t *buf, int width, int height,
 
 #define test_subtract_average(width, height)                         \
   void test_subtract_average_##width##x##height() {                  \
+    struct timespec start, end;                                      \
     int16_t c_buf[CFL_BUF_LINE * CFL_BUF_LINE] = {0};                \
     int16_t neon_buf[CFL_BUF_LINE * CFL_BUF_LINE] = {0};             \
     fill_buf(c_buf, width, height, CFL_BUF_LINE);                    \
     fill_buf(neon_buf, width, height, CFL_BUF_LINE);                 \
+    clock_gettime(CLOCK_REALTIME, &start);                           \
     subtract_average_##width##x##height##_c(c_buf);                  \
+    clock_gettime(CLOCK_REALTIME, &end);                             \
+    printf("%.9f\n", elapsed_seconds(&start, &end));                 \
+    clock_gettime(CLOCK_REALTIME, &start);                           \
     subtract_average_##width##x##height##_neon(neon_buf);            \
+    clock_gettime(CLOCK_REALTIME, &end);                             \
+    printf("%.9f\n", elapsed_seconds(&start, &end));                 \
     assert_buf_equals(c_buf, neon_buf, width, height, CFL_BUF_LINE); \
   }
 
