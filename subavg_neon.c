@@ -89,22 +89,29 @@ static void subtract_average_neon(int16_t *buf, int width, int height,
               subtract_average(arch, 8, 16, 16, 6)                             \
                   subtract_average(arch, 8, 32, 64, 7)
 
+#define SPEED_ITER (1 << 16)
+
 #define test_subtract_average(width, height)                         \
   void test_subtract_average_##width##x##height() {                  \
     struct timespec start, end;                                      \
+    int i;                                                           \
     int16_t c_buf[CFL_BUF_LINE * CFL_BUF_LINE] = {0};                \
     int16_t neon_buf[CFL_BUF_LINE * CFL_BUF_LINE] = {0};             \
     fill_buf(c_buf, width, height, CFL_BUF_LINE);                    \
     fill_buf(neon_buf, width, height, CFL_BUF_LINE);                 \
-    clock_gettime(CLOCK_REALTIME, &start);                           \
     subtract_average_##width##x##height##_c(c_buf);                  \
-    clock_gettime(CLOCK_REALTIME, &end);                             \
-    printf("%.9f\n", elapsed_seconds(&start, &end));                 \
-    clock_gettime(CLOCK_REALTIME, &start);                           \
     subtract_average_##width##x##height##_neon(neon_buf);            \
-    clock_gettime(CLOCK_REALTIME, &end);                             \
-    printf("%.9f\n", elapsed_seconds(&start, &end));                 \
     assert_buf_equals(c_buf, neon_buf, width, height, CFL_BUF_LINE); \
+    clock_gettime(CLOCK_REALTIME, &start);                           \
+    for (i = 0; i < SPEED_ITER; ++i)                                 \
+      subtract_average_##width##x##height##_c(c_buf);                \
+    clock_gettime(CLOCK_REALTIME, &end);                             \
+    printf("%.12f\n", elapsed_seconds(&start, &end) / SPEED_ITER);   \
+    clock_gettime(CLOCK_REALTIME, &start);                           \
+    for (i = 0; i < SPEED_ITER; ++i)                                 \
+      subtract_average_##width##x##height##_neon(neon_buf);          \
+    clock_gettime(CLOCK_REALTIME, &end);                             \
+    printf("%.12f\n", elapsed_seconds(&start, &end) / SPEED_ITER);   \
   }
 
 subtract_functions(c);
