@@ -94,6 +94,7 @@ static void subtract_average_neon(int16_t *buf, int width, int height,
 #define test_subtract_average(width, height)                         \
   void test_subtract_average_##width##x##height() {                  \
     struct timespec start, end;                                      \
+    double c_time, neon_time;                                        \
     int i;                                                           \
     int16_t c_buf[CFL_BUF_LINE * CFL_BUF_LINE] = {0};                \
     int16_t neon_buf[CFL_BUF_LINE * CFL_BUF_LINE] = {0};             \
@@ -106,12 +107,14 @@ static void subtract_average_neon(int16_t *buf, int width, int height,
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       subtract_average_##width##x##height##_c(c_buf);                \
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    printf("%.12f\n", elapsed_seconds(&start, &end) / SPEED_ITER);   \
+    c_time = elapsed_seconds(&start, &end) / SPEED_ITER;             \
+    printf("%.12f\n", c_time);                                       \
     clock_gettime(CLOCK_REALTIME, &start);                           \
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       subtract_average_##width##x##height##_neon(neon_buf);          \
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    printf("%.12f\n", elapsed_seconds(&start, &end) / SPEED_ITER);   \
+    neon_time = elapsed_seconds(&start, &end) / SPEED_ITER;          \
+    printf("%.12f (%.1fx)\n", neon_time, c_time / neon_time);        \
   }
 
 subtract_functions(c);
