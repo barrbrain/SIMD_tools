@@ -3,13 +3,9 @@
 #include <stdio.h>
 #include <time.h>
 
-#include <arm_neon.h>
 
 #include "assert_data.h"
 #include "gen_data.h"
-#include "neon_print.h"
-
-#define INLINE inline
 
 #define CFL_BUF_LINE (32)
 
@@ -32,6 +28,13 @@ static void subtract_average_c(int16_t *buf, int width, int height,
     }
   }
 }
+
+#if defined(__ARM_NEON)
+
+#include <arm_neon.h>
+#include "neon_print.h"
+
+#define INLINE inline
 
 static INLINE void vldsubstq_s16(int16_t *buf, int16x8_t sub) {
   vst1q_s16(buf, vsubq_s16(vld1q_s16(buf), sub));
@@ -154,6 +157,9 @@ static INLINE void subtract_average_neon(int16_t *pred_buf, int width,
     } while ((pred_buf += step) < end);
   }
 }
+#else
+#define subtract_average_neon subtract_average_c
+#endif
 
 #define subtract_average(arch, width, height, round_offset, numpel_log2)    \
   void subtract_average_##width##x##height##_##arch(int16_t *buf) {         \
