@@ -176,7 +176,8 @@ static INLINE void subtract_average_neon(int16_t *pred_buf, int width,
 #define SPEED_ITER (1 << 16)
 
 #define test_subtract_average(width, height)                         \
-  void test_subtract_average_##width##x##height() {                  \
+  void test_subtract_average_##width##x##height(char *b, size_t n) { \
+    char *s;                                                         \
     struct timespec start, end;                                      \
     double c_time, neon_time;                                        \
     int i;                                                           \
@@ -187,18 +188,23 @@ static INLINE void subtract_average_neon(int16_t *pred_buf, int width,
     subtract_average_##width##x##height##_c(c_buf);                  \
     subtract_average_##width##x##height##_neon(neon_buf);            \
     assert_buf_equals(c_buf, neon_buf, width, height, CFL_BUF_LINE); \
+    strlcat(b, "subtract_average_" #width "x" #height "\n", n);      \
     clock_gettime(CLOCK_REALTIME, &start);                           \
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       subtract_average_##width##x##height##_c(c_buf);                \
     clock_gettime(CLOCK_REALTIME, &end);                             \
     c_time = elapsed_seconds(&start, &end) / SPEED_ITER;             \
-    printf("%.12f\n", c_time);                                       \
+    asprintf(&s, "%.12f\n", c_time);                                 \
+    strlcat(b, s, n);                                                \
+    free(s);                                                         \
     clock_gettime(CLOCK_REALTIME, &start);                           \
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       subtract_average_##width##x##height##_neon(neon_buf);          \
     clock_gettime(CLOCK_REALTIME, &end);                             \
     neon_time = elapsed_seconds(&start, &end) / SPEED_ITER;          \
-    printf("%.12f (%.1fx)\n", neon_time, c_time / neon_time);        \
+    asprintf(&s, "%.12f (%.1fx)\n", neon_time, c_time / neon_time);  \
+    strlcat(b, s, n);                                                \
+    free(s);                                                         \
   }
 
 subtract_functions(c);
@@ -212,8 +218,15 @@ test_subtract_average(8, 8);
 test_subtract_average(8, 16);
 test_subtract_average(8, 32);
 
+void test_subtract_average_all(char *b, size_t n) {
+  test_subtract_average_4x4(b, n);
+  test_subtract_average_4x8(b, n);
+  test_subtract_average_4x16(b, n);
+}
+
 int main(void) {
-  test_subtract_average_4x4();
-  test_subtract_average_4x8();
-  test_subtract_average_4x16();
+  char buffer[2048] = { 0 };
+  test_subtract_average_all(buffer, sizeof buffer);
+  printf("%s", buffer);
+  return 0;
 }

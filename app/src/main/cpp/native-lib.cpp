@@ -1,16 +1,14 @@
 #include <jni.h>
 #include <string>
 
-extern "C" int main(void);
+extern "C" void test_subtract_average_all(char *, size_t);
 
 extern "C"
 JNIEXPORT jstring JNICALL
 Java_barrbrain_simdtools_MainActivity_stringFromJNI(
         JNIEnv *env,
         jobject /* this */) {
-    std::string hello = "Hello from C++";
-    freopen("/sdcard/simd_tools", "w", stdout);
-    main();
-    fflush(stdout);
-    return env->NewStringUTF(hello.c_str());
+    char buffer[2048] = { 0 };
+    test_subtract_average_all(buffer, sizeof buffer);
+    return env->NewStringUTF(buffer);
 }
