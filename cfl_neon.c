@@ -8,11 +8,12 @@
  * Media Patent License 1.0 was not distributed with this source code in the
  * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
  */
+
+#include <stdint.h>
+#include "cfl.h"
+
+#if defined(__ARM_NEON)
 #include <arm_neon.h>
-
-#include "./av1_rtcd.h"
-
-#include "av1/common/cfl.h"
 
 static INLINE void vldsubstq_s16(int16_t *buf, int16x8_t sub) {
   vst1q_s16(buf, vsubq_s16(vld1q_s16(buf), sub));
@@ -347,7 +348,7 @@ static INLINE void subtract_average_neon(int16_t *pred_buf, int width,
     case 10:
       avg_16x4 = vreinterpret_s16_u16(vqrshrn_n_u32(sum_32x4, 10));
       break;
-    default: assert(0);
+    default: break;
   }
 
   if (width == 4) {
@@ -590,3 +591,8 @@ static INLINE void cfl_predict_hbd_neon(const int16_t *pred_buf_q3,
 }
 
 CFL_PREDICT_FN(neon, hbd)
+#endif
+
+void test_all(char *b, size_t n) {
+    return;
+}

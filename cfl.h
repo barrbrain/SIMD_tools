@@ -12,72 +12,62 @@
 #ifndef AV1_COMMON_CFL_H_
 #define AV1_COMMON_CFL_H_
 
-#include "av1/common/blockd.h"
-#include "av1/common/onyxc_int.h"
+#define INLINE inline
+#define CFL_BUF_LINE (32)
+#define CFL_BUF_SQUARE (1024)
 
-// Can we use CfL for the current block?
-static INLINE CFL_ALLOWED_TYPE is_cfl_allowed(const MACROBLOCKD *xd) {
-  const MB_MODE_INFO *mbmi = xd->mi[0];
-  const BLOCK_SIZE bsize = mbmi->sb_type;
-  assert(bsize < BLOCK_SIZES_ALL);
-  if (xd->lossless[mbmi->segment_id]) {
-    // In lossless, CfL is available when the partition size is equal to the
-    // transform size.
-    const int plane_bsize =
-        get_plane_block_size(bsize, &xd->plane[AOM_PLANE_U]);
-    return (CFL_ALLOWED_TYPE)(plane_bsize == BLOCK_4X4);
-  }
-  // Spec: CfL is available to luma partitions lesser than or equal to 32x32
-  return (CFL_ALLOWED_TYPE)(block_size_wide[bsize] <= 32 &&
-                            block_size_high[bsize] <= 32);
-}
+typedef enum ATTRIBUTE_PACKED {
+  TX_4X4,             // 4x4 transform
+  TX_8X8,             // 8x8 transform
+  TX_16X16,           // 16x16 transform
+  TX_32X32,           // 32x32 transform
+  TX_64X64,           // 64x64 transform
+  TX_4X8,             // 4x8 transform
+  TX_8X4,             // 8x4 transform
+  TX_8X16,            // 8x16 transform
+  TX_16X8,            // 16x8 transform
+  TX_16X32,           // 16x32 transform
+  TX_32X16,           // 32x16 transform
+  TX_32X64,           // 32x64 transform
+  TX_64X32,           // 64x32 transform
+  TX_4X16,            // 4x16 transform
+  TX_16X4,            // 16x4 transform
+  TX_8X32,            // 8x32 transform
+  TX_32X8,            // 32x8 transform
+  TX_16X64,           // 16x64 transform
+  TX_64X16,           // 64x16 transform
+  TX_SIZES_ALL,       // Includes rectangular transforms
+  TX_SIZES = TX_4X8,  // Does NOT include rectangular transforms
+  TX_SIZES_LARGEST = TX_64X64,
+  TX_INVALID = 255  // Invalid transform size
+} TX_SIZE;
 
-// Do we need to save the luma pixels from the current block,
-// for a possible future CfL prediction?
-static INLINE CFL_ALLOWED_TYPE store_cfl_required(const AV1_COMMON *cm,
-                                                  const MACROBLOCKD *xd) {
-  const MB_MODE_INFO *mbmi = xd->mi[0];
+typedef void (*cfl_subsample_lbd_fn)(const uint8_t *input, int input_stride,
+                                     int16_t *output_q3);
 
-  if (cm->seq_params.monochrome) return CFL_DISALLOWED;
+typedef void (*cfl_subsample_hbd_fn)(const uint16_t *input, int input_stride,
+                                     int16_t *output_q3);
 
-  if (!xd->cfl.is_chroma_reference) {
-    // For non-chroma-reference blocks, we should always store the luma pixels,
-    // in case the corresponding chroma-reference block uses CfL.
-    // Note that this can only happen for block sizes which are <8 on
-    // their shortest side, as otherwise they would be chroma reference
-    // blocks.
-    return CFL_ALLOWED;
-  }
+typedef void (*cfl_subtract_average_fn)(int16_t *pred_buf_q3);
 
-  // If this block has chroma information, we know whether we're
-  // actually going to perform a CfL prediction
-  return (CFL_ALLOWED_TYPE)(!is_inter_block(mbmi) &&
-                            mbmi->uv_mode == UV_CFL_PRED);
-}
+typedef void (*cfl_predict_lbd_fn)(const int16_t *pred_buf_q3, uint8_t *dst,
+                                   int dst_stride, int alpha_q3);
+
+typedef void (*cfl_predict_hbd_fn)(const int16_t *pred_buf_q3, uint16_t *dst,
+                                   int dst_stride, int alpha_q3, int bd);
+
+/* Shift down with rounding for use when n >= 0, value >= 0 */
+#define ROUND_POWER_OF_TWO(value, n) (((value) + (((1 << (n)) >> 1))) >> (n))
+
+/* Shift down with rounding for signed integers, for use when n >= 0 */
+#define ROUND_POWER_OF_TWO_SIGNED(value, n)           \
+  (((value) < 0) ? -ROUND_POWER_OF_TWO(-(value), (n)) \
+                 : ROUND_POWER_OF_TWO((value), (n)))
 
 static INLINE int get_scaled_luma_q0(int alpha_q3, int16_t pred_buf_q3) {
   int scaled_luma_q6 = alpha_q3 * pred_buf_q3;
   return ROUND_POWER_OF_TWO_SIGNED(scaled_luma_q6, 6);
 }
-
-static INLINE CFL_PRED_TYPE get_cfl_pred_type(PLANE_TYPE plane) {
-  assert(plane > 0);
-  return (CFL_PRED_TYPE)(plane - 1);
-}
-
-void cfl_predict_block(MACROBLOCKD *const xd, uint8_t *dst, int dst_stride,
-                       TX_SIZE tx_size, int plane);
-
-void cfl_store_block(MACROBLOCKD *const xd, BLOCK_SIZE bsize, TX_SIZE tx_size);
-
-void cfl_store_tx(MACROBLOCKD *const xd, int row, int col, TX_SIZE tx_size,
-                  BLOCK_SIZE bsize);
-
-void cfl_store_dc_pred(MACROBLOCKD *const xd, const uint8_t *input,
-                       CFL_PRED_TYPE pred_plane, int width);
-
-void cfl_load_dc_pred(MACROBLOCKD *const xd, uint8_t *dst, int dst_stride,
-                      TX_SIZE tx_size, CFL_PRED_TYPE pred_plane);
 
 // Null function used for invalid tx_sizes
 void cfl_subsample_lbd_null(const uint8_t *input, int input_stride,
@@ -162,7 +152,6 @@ void cfl_subsample_hbd_null(const uint16_t *input, int input_stride,
 // Null function used for invalid tx_sizes
 static INLINE void cfl_subtract_average_null(int16_t *pred_buf_q3) {
   (void)pred_buf_q3;
-  assert(0);
 }
 
 // Declare a size-specific wrapper for the size-generic function. The compiler
