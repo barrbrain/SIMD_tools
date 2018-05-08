@@ -592,7 +592,3 @@ static INLINE void cfl_predict_hbd_neon(const int16_t *pred_buf_q3,
 
 CFL_PREDICT_FN(neon, hbd)
 #endif
-
-void test_all(char *b, size_t n) {
-    return;
-}

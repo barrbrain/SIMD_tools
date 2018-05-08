@@ -4,6 +4,7 @@ add_library( native-lib
              SHARED
              src/main/cpp/native-lib.cpp
 	     ../cfl_neon.c
-	     ../cfl.c )
+	     ../cfl.c
+	     ../cfl_test.c )
 
 target_link_libraries( native-lib )
