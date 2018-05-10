@@ -38,7 +38,7 @@ static INLINE void vsth_u8(uint8_t *ptr, uint8x8_t val) {
   *((uint32_t *)ptr) = vreinterpret_u32_u8(val)[0];
 }
 
-static void cfl_luma_subsampling_420_lbd_neon(const uint8_t *input,
+static void INLINE cfl_luma_subsampling_420_lbd_neon(const uint8_t *input,
                                               int input_stride,
                                               int16_t *pred_buf_q3, int width,
                                               int height) {
@@ -79,7 +79,7 @@ static void cfl_luma_subsampling_420_lbd_neon(const uint8_t *input,
   } while ((pred_buf_q3 += CFL_BUF_LINE) < end);
 }
 
-static void cfl_luma_subsampling_422_lbd_neon(const uint8_t *input,
+static void INLINE cfl_luma_subsampling_422_lbd_neon(const uint8_t *input,
                                               int input_stride,
                                               int16_t *pred_buf_q3, int width,
                                               int height) {
@@ -109,7 +109,7 @@ static void cfl_luma_subsampling_422_lbd_neon(const uint8_t *input,
   } while ((pred_buf_q3 += CFL_BUF_LINE) < end);
 }
 
-static void cfl_luma_subsampling_444_lbd_neon(const uint8_t *input,
+static void INLINE cfl_luma_subsampling_444_lbd_neon(const uint8_t *input,
                                               int input_stride,
                                               int16_t *pred_buf_q3, int width,
                                               int height) {
@@ -146,7 +146,7 @@ uint16x8_t vpaddq_u16(uint16x8_t a, uint16x8_t b) {
 }
 #endif
 
-static void cfl_luma_subsampling_420_hbd_neon(const uint16_t *input,
+static void INLINE cfl_luma_subsampling_420_hbd_neon(const uint16_t *input,
                                               int input_stride,
                                               int16_t *pred_buf_q3, int width,
                                               int height) {
@@ -196,7 +196,7 @@ static void cfl_luma_subsampling_420_hbd_neon(const uint16_t *input,
   } while ((pred_buf_q3 += CFL_BUF_LINE) < end);
 }
 
-static void cfl_luma_subsampling_422_hbd_neon(const uint16_t *input,
+static void INLINE cfl_luma_subsampling_422_hbd_neon(const uint16_t *input,
                                               int input_stride,
                                               int16_t *pred_buf_q3, int width,
                                               int height) {
@@ -231,7 +231,7 @@ static void cfl_luma_subsampling_422_hbd_neon(const uint16_t *input,
   } while ((pred_buf_q3 += CFL_BUF_LINE) < end);
 }
 
-static void cfl_luma_subsampling_444_hbd_neon(const uint16_t *input,
+static void INLINE cfl_luma_subsampling_444_hbd_neon(const uint16_t *input,
                                               int input_stride,
                                               int16_t *pred_buf_q3, int width,
                                               int height) {
@@ -394,7 +394,7 @@ CFL_SUB_AVG_FN(neon)
 //   corresponding elements in b are zero. Because vsign is used twice in a
 //   row, with b in the first call becoming a in the second call, there's no
 //   impact from not zeroing out.
-static int16x4_t vsign_s16(int16x4_t a, int16x4_t b) {
+static INLINE int16x4_t vsign_s16(int16x4_t a, int16x4_t b) {
   const int16x4_t mask = vshr_n_s16(b, 15);
   return veor_s16(vadd_s16(a, mask), mask);
 }
@@ -408,7 +408,7 @@ static int16x4_t vsign_s16(int16x4_t a, int16x4_t b) {
 //   corresponding elements in b are zero. Because vsignq is used twice in a
 //   row, with b in the first call becoming a in the second call, there's no
 //   impact from not zeroing out.
-static int16x8_t vsignq_s16(int16x8_t a, int16x8_t b) {
+static INLINE int16x8_t vsignq_s16(int16x8_t a, int16x8_t b) {
   const int16x8_t mask = vshrq_n_s16(b, 15);
   return veorq_s16(vaddq_s16(a, mask), mask);
 }

@@ -12,7 +12,7 @@
 #ifndef AV1_COMMON_CFL_H_
 #define AV1_COMMON_CFL_H_
 
-#define INLINE inline
+#define INLINE __attribute__((always_inline))
 #define CFL_BUF_LINE (32)
 #define CFL_BUF_SQUARE (1024)
 

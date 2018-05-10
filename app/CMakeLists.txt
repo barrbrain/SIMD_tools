@@ -8,3 +8,6 @@ add_library( native-lib
 	     ../cfl_test.c )
 
 target_link_libraries( native-lib )
+
+set(ANDROID_NDK_ARCH "armv7")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mtune=exynos-m1 -fno-slp-vectorize -mllvm -force-vector-width=1 -mllvm -force-vector-interleave=1 -O3")
