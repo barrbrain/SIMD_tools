@@ -9,11 +9,12 @@
 #include <arm_neon.h>
 #include "neon_print.h"
 
-static double elapsed_seconds(struct timespec *t1, struct timespec *t2) {
-    return 1e-9 * t2->tv_nsec + t2->tv_sec - 1e-9 * t1->tv_nsec - t1->tv_sec;
-}
-
 #define SPEED_ITER (1 << 16)
+
+static double elapsed_usec(struct timespec *t1, struct timespec *t2) {
+    return 1e6 / SPEED_ITER * (t2->tv_sec  - t1->tv_sec) +
+           1e-3 / SPEED_ITER * (t2->tv_nsec - t1->tv_nsec);
+}
 
 #define test_subtract_average(width, height)                         \
   void test_subtract_average_##width##x##height(char *b, size_t n) { \
@@ -33,16 +34,16 @@ static double elapsed_seconds(struct timespec *t1, struct timespec *t2) {
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       subtract_average_##width##x##height##_c(c_buf);                \
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    c_time = elapsed_seconds(&start, &end) / SPEED_ITER * 1e6;       \
-    asprintf(&s, "%7.3fµs ", c_time);                                \
+    c_time = elapsed_usec(&start, &end);                             \
+    asprintf(&s, "%.3fµs ", c_time);                                 \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
     clock_gettime(CLOCK_REALTIME, &start);                           \
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       subtract_average_##width##x##height##_neon(neon_buf);          \
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    neon_time = elapsed_seconds(&start, &end) / SPEED_ITER * 1e6;    \
-    asprintf(&s, "%7.3fµs (%.1fx)\n", neon_time, c_time / neon_time);\
+    neon_time = elapsed_usec(&start, &end);                          \
+    asprintf(&s, "%.3fµs (%.1fx)\n", neon_time, c_time / neon_time); \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
   }
@@ -73,16 +74,16 @@ int16_t out[CFL_BUF_LINE * CFL_BUF_LINE] = {0};
     clock_gettime(CLOCK_REALTIME, &start);                           \
     for (i = 0; i < SPEED_ITER; ++i) fun_c(c_buf, CFL_BUF_LINE, out);\
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    c_time = elapsed_seconds(&start, &end) / SPEED_ITER * 1e6;       \
-    asprintf(&s, "%7.3fµs ", c_time);                                \
+    c_time = elapsed_usec(&start, &end);                             \
+    asprintf(&s, "%.3fµs ", c_time);                                 \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
     clock_gettime(CLOCK_REALTIME, &start);                           \
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       fun_neon(neon_buf, CFL_BUF_LINE, out);                         \
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    neon_time = elapsed_seconds(&start, &end) / SPEED_ITER * 1e6;    \
-    asprintf(&s, "%7.3fµs (%.1fx)\n", neon_time, c_time / neon_time);\
+    neon_time = elapsed_usec(&start, &end);                          \
+    asprintf(&s, "%.3fµs (%.1fx)\n", neon_time, c_time / neon_time); \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
   }
@@ -126,16 +127,16 @@ test_subsampling_hbd(444, 32, 32);
     clock_gettime(CLOCK_REALTIME, &start);                           \
     for (i = 0; i < SPEED_ITER; ++i) fun_c(c_buf, CFL_BUF_LINE, out);\
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    c_time = elapsed_seconds(&start, &end) / SPEED_ITER * 1e6;       \
-    asprintf(&s, "%7.3fµs ", c_time);                                \
+    c_time = elapsed_usec(&start, &end);                             \
+    asprintf(&s, "%.3fµs ", c_time);                                 \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
     clock_gettime(CLOCK_REALTIME, &start);                           \
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       fun_neon(neon_buf, CFL_BUF_LINE, out);                         \
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    neon_time = elapsed_seconds(&start, &end) / SPEED_ITER * 1e6;    \
-    asprintf(&s, "%7.3fµs (%.1fx)\n", neon_time, c_time / neon_time);\
+    neon_time = elapsed_usec(&start, &end);                          \
+    asprintf(&s, "%.3fµs (%.1fx)\n", neon_time, c_time / neon_time); \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
   }
@@ -177,16 +178,16 @@ test_subsampling_lbd(444, 32, 32);
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       fun_c(c_buf, out, CFL_BUF_LINE, 1, 8);                         \
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    c_time = elapsed_seconds(&start, &end) / SPEED_ITER * 1e6;       \
-    asprintf(&s, "%7.3fµs ", c_time);                                \
+    c_time = elapsed_usec(&start, &end);                             \
+    asprintf(&s, "%.3fµs ", c_time);                                 \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
     clock_gettime(CLOCK_REALTIME, &start);                           \
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       fun_neon(neon_buf, out, CFL_BUF_LINE, 1, 8);                   \
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    neon_time = elapsed_seconds(&start, &end) / SPEED_ITER * 1e6;    \
-    asprintf(&s, "%7.3fµs (%.1fx)\n", neon_time, c_time / neon_time);\
+    neon_time = elapsed_usec(&start, &end);                          \
+    asprintf(&s, "%.3fµs (%.1fx)\n", neon_time, c_time / neon_time); \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
   }
@@ -215,16 +216,16 @@ test_predict_hbd(32, 32);
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       fun_c(c_buf, out, CFL_BUF_LINE, 1);                            \
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    c_time = elapsed_seconds(&start, &end) / SPEED_ITER * 1e6;       \
-    asprintf(&s, "%7.3fµs ", c_time);                                \
+    c_time = elapsed_usec(&start, &end);                             \
+    asprintf(&s, "%.3fµs ", c_time);                                 \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
     clock_gettime(CLOCK_REALTIME, &start);                           \
     for (i = 0; i < SPEED_ITER; ++i)                                 \
       fun_neon(neon_buf, out, CFL_BUF_LINE, 1);                      \
     clock_gettime(CLOCK_REALTIME, &end);                             \
-    neon_time = elapsed_seconds(&start, &end) / SPEED_ITER * 1e6;    \
-    asprintf(&s, "%7.3fµs (%.1fx)\n", neon_time, c_time / neon_time);\
+    neon_time = elapsed_usec(&start, &end);                          \
+    asprintf(&s, "%.3fµs (%.1fx)\n", neon_time, c_time / neon_time); \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
   }
