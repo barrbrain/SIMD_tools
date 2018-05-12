@@ -13,11 +13,6 @@
 #define SPEED_ITER (1 << 16)
 #define ROBUST_ITER 15
 
-static double elapsed_usec(struct timespec *t1, struct timespec *t2) {
-    return 1e6 / SPEED_ITER * (t2->tv_sec  - t1->tv_sec) +
-           1e-3 / SPEED_ITER * (t2->tv_nsec - t1->tv_nsec);
-}
-
 static double elapsed_nsec(struct timespec *t1, struct timespec *t2) {
   return 1e9 / SPEED_ITER * (t2->tv_sec  - t1->tv_sec) +
          1. / SPEED_ITER * (t2->tv_nsec - t1->tv_nsec);
@@ -95,27 +90,29 @@ int16_t out[CFL_BUF_LINE * CFL_BUF_LINE] = {0};
     const TX_SIZE tx_size = TX_##width##X##height;                   \
     cfl_subsample_hbd_fn fun_c, fun_neon;                            \
     char *s;                                                         \
-    struct timespec start, end;                                      \
+    struct timespec t[ROBUST_ITER + 1];                              \
     double c_time, neon_time;                                        \
-    int i;                                                           \
+    int i, j;                                                        \
     fill_buf(c_buf, width, height, CFL_BUF_LINE);                    \
     fill_buf(neon_buf, width, height, CFL_BUF_LINE);                 \
     fun_c = cfl_get_luma_subsampling_##sub##_hbd_c(tx_size);         \
     fun_neon = cfl_get_luma_subsampling_##sub##_hbd_neon(tx_size);   \
     strlcat(b, "subsample_hbd_" #sub "_" #width "x" #height " ", n); \
-    clock_gettime(CLOCK_REALTIME, &start);                           \
-    for (i = 0; i < SPEED_ITER; ++i) fun_c(c_buf, CFL_BUF_LINE, out);\
-    clock_gettime(CLOCK_REALTIME, &end);                             \
-    c_time = elapsed_usec(&start, &end);                             \
-    asprintf(&s, "%.3fµs ", c_time);                                 \
-    strlcat(b, s, n);                                                \
-    free(s);                                                         \
-    clock_gettime(CLOCK_REALTIME, &start);                           \
-    for (i = 0; i < SPEED_ITER; ++i)                                 \
-      fun_neon(neon_buf, CFL_BUF_LINE, out);                         \
-    clock_gettime(CLOCK_REALTIME, &end);                             \
-    neon_time = elapsed_usec(&start, &end);                          \
-    asprintf(&s, "%.3fµs (%.1fx)\n", neon_time, c_time / neon_time); \
+    clock_gettime(CLOCK_REALTIME, t);                                \
+    for (j = 1; j <= ROBUST_ITER; ++j) {                             \
+      for (i = 0; i < SPEED_ITER; ++i)                               \
+        fun_c(c_buf, CFL_BUF_LINE, out);                             \
+      clock_gettime(CLOCK_REALTIME, t + j);                          \
+    }                                                                \
+    c_time = print_median(t, b, n);                                  \
+    clock_gettime(CLOCK_REALTIME, t);                                \
+    for (j = 1; j <= ROBUST_ITER; ++j) {                             \
+      for (i = 0; i < SPEED_ITER; ++i)                               \
+        fun_neon(neon_buf, CFL_BUF_LINE, out);                       \
+      clock_gettime(CLOCK_REALTIME, t + j);                          \
+    }                                                                \
+    neon_time = print_median(t, b, n);                               \
+    asprintf(&s, "(%.1fx)\n", c_time / neon_time);                   \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
   }
@@ -148,27 +145,29 @@ test_subsampling_hbd(444, 32, 32);
     const TX_SIZE tx_size = TX_##width##X##height;                   \
     cfl_subsample_lbd_fn fun_c, fun_neon;                            \
     char *s;                                                         \
-    struct timespec start, end;                                      \
+    struct timespec t[ROBUST_ITER + 1];                              \
     double c_time, neon_time;                                        \
-    int i;                                                           \
+    int i, j;                                                        \
     uint8_t c_buf[CFL_BUF_LINE * CFL_BUF_LINE] = {0};                \
     uint8_t neon_buf[CFL_BUF_LINE * CFL_BUF_LINE] = {0};             \
     fun_c = cfl_get_luma_subsampling_##sub##_lbd_c(tx_size);         \
     fun_neon = cfl_get_luma_subsampling_##sub##_lbd_neon(tx_size);   \
     strlcat(b, "subsample_lbd_" #sub "_" #width "x" #height " ", n); \
-    clock_gettime(CLOCK_REALTIME, &start);                           \
-    for (i = 0; i < SPEED_ITER; ++i) fun_c(c_buf, CFL_BUF_LINE, out);\
-    clock_gettime(CLOCK_REALTIME, &end);                             \
-    c_time = elapsed_usec(&start, &end);                             \
-    asprintf(&s, "%.3fµs ", c_time);                                 \
-    strlcat(b, s, n);                                                \
-    free(s);                                                         \
-    clock_gettime(CLOCK_REALTIME, &start);                           \
-    for (i = 0; i < SPEED_ITER; ++i)                                 \
-      fun_neon(neon_buf, CFL_BUF_LINE, out);                         \
-    clock_gettime(CLOCK_REALTIME, &end);                             \
-    neon_time = elapsed_usec(&start, &end);                          \
-    asprintf(&s, "%.3fµs (%.1fx)\n", neon_time, c_time / neon_time); \
+    clock_gettime(CLOCK_REALTIME, t);                                \
+    for (j = 1; j <= ROBUST_ITER; ++j) {                             \
+      for (i = 0; i < SPEED_ITER; ++i)                               \
+        fun_c(c_buf, CFL_BUF_LINE, out);                             \
+      clock_gettime(CLOCK_REALTIME, t + j);                          \
+    }                                                                \
+    c_time = print_median(t, b, n);                                  \
+    clock_gettime(CLOCK_REALTIME, t);                                \
+    for (j = 1; j <= ROBUST_ITER; ++j) {                             \
+      for (i = 0; i < SPEED_ITER; ++i)                               \
+        fun_neon(neon_buf, CFL_BUF_LINE, out);                       \
+      clock_gettime(CLOCK_REALTIME, t + j);                          \
+    }                                                                \
+    neon_time = print_median(t, b, n);                               \
+    asprintf(&s, "(%.1fx)\n", c_time / neon_time);                   \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
   }
@@ -200,26 +199,27 @@ test_subsampling_lbd(444, 32, 32);
     const TX_SIZE tx_size = TX_##width##X##height;                   \
     cfl_predict_hbd_fn fun_c, fun_neon;                              \
     char *s;                                                         \
-    struct timespec start, end;                                      \
+    struct timespec t[ROBUST_ITER + 1];                              \
     double c_time, neon_time;                                        \
-    int i;                                                           \
+    int i, j;                                                        \
     fun_c = get_predict_hbd_fn_c(tx_size);                           \
     fun_neon = get_predict_hbd_fn_neon(tx_size);                     \
     strlcat(b, "predict_hbd_" #width "x" #height " ", n);            \
-    clock_gettime(CLOCK_REALTIME, &start);                           \
-    for (i = 0; i < SPEED_ITER; ++i)                                 \
-      fun_c(c_buf, out, CFL_BUF_LINE, 1, 8);                         \
-    clock_gettime(CLOCK_REALTIME, &end);                             \
-    c_time = elapsed_usec(&start, &end);                             \
-    asprintf(&s, "%.3fµs ", c_time);                                 \
-    strlcat(b, s, n);                                                \
-    free(s);                                                         \
-    clock_gettime(CLOCK_REALTIME, &start);                           \
-    for (i = 0; i < SPEED_ITER; ++i)                                 \
-      fun_neon(neon_buf, out, CFL_BUF_LINE, 1, 8);                   \
-    clock_gettime(CLOCK_REALTIME, &end);                             \
-    neon_time = elapsed_usec(&start, &end);                          \
-    asprintf(&s, "%.3fµs (%.1fx)\n", neon_time, c_time / neon_time); \
+    clock_gettime(CLOCK_REALTIME, t);                                \
+    for (j = 1; j <= ROBUST_ITER; ++j) {                             \
+      for (i = 0; i < SPEED_ITER; ++i)                               \
+        fun_c(c_buf, out, CFL_BUF_LINE, 1, 8);                       \
+      clock_gettime(CLOCK_REALTIME, t + j);                          \
+    }                                                                \
+    c_time = print_median(t, b, n);                                  \
+    clock_gettime(CLOCK_REALTIME, t);                                \
+    for (j = 1; j <= ROBUST_ITER; ++j) {                             \
+      for (i = 0; i < SPEED_ITER; ++i)                               \
+        fun_neon(neon_buf, out, CFL_BUF_LINE, 1, 8);                 \
+      clock_gettime(CLOCK_REALTIME, t + j);                          \
+    }                                                                \
+    neon_time = print_median(t, b, n);                               \
+    asprintf(&s, "(%.1fx)\n", c_time / neon_time);                   \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
   }
@@ -237,27 +237,28 @@ test_predict_hbd(32, 32);
     const TX_SIZE tx_size = TX_##width##X##height;                   \
     cfl_predict_lbd_fn fun_c, fun_neon;                              \
     char *s;                                                         \
-    struct timespec start, end;                                      \
+    struct timespec t[ROBUST_ITER + 1];                              \
     double c_time, neon_time;                                        \
-    int i;                                                           \
+    int i, j;                                                        \
     uint8_t out[CFL_BUF_LINE * CFL_BUF_LINE] = {0};                  \
     fun_c = get_predict_lbd_fn_c(tx_size);                           \
     fun_neon = get_predict_lbd_fn_neon(tx_size);                     \
     strlcat(b, "predict_lbd_" #width "x" #height " ", n);            \
-    clock_gettime(CLOCK_REALTIME, &start);                           \
-    for (i = 0; i < SPEED_ITER; ++i)                                 \
-      fun_c(c_buf, out, CFL_BUF_LINE, 1);                            \
-    clock_gettime(CLOCK_REALTIME, &end);                             \
-    c_time = elapsed_usec(&start, &end);                             \
-    asprintf(&s, "%.3fµs ", c_time);                                 \
-    strlcat(b, s, n);                                                \
-    free(s);                                                         \
-    clock_gettime(CLOCK_REALTIME, &start);                           \
-    for (i = 0; i < SPEED_ITER; ++i)                                 \
-      fun_neon(neon_buf, out, CFL_BUF_LINE, 1);                      \
-    clock_gettime(CLOCK_REALTIME, &end);                             \
-    neon_time = elapsed_usec(&start, &end);                          \
-    asprintf(&s, "%.3fµs (%.1fx)\n", neon_time, c_time / neon_time); \
+    clock_gettime(CLOCK_REALTIME, t);                                \
+    for (j = 1; j <= ROBUST_ITER; ++j) {                             \
+      for (i = 0; i < SPEED_ITER; ++i)                               \
+        fun_c(c_buf, out, CFL_BUF_LINE, 1);                          \
+      clock_gettime(CLOCK_REALTIME, t + j);                          \
+    }                                                                \
+    c_time = print_median(t, b, n);                                  \
+    clock_gettime(CLOCK_REALTIME, t);                                \
+    for (j = 1; j <= ROBUST_ITER; ++j) {                             \
+      for (i = 0; i < SPEED_ITER; ++i)                               \
+        fun_neon(neon_buf, out, CFL_BUF_LINE, 1);                    \
+      clock_gettime(CLOCK_REALTIME, t + j);                          \
+    }                                                                \
+    neon_time = print_median(t, b, n);                               \
+    asprintf(&s, "(%.1fx)\n", c_time / neon_time);                   \
     strlcat(b, s, n);                                                \
     free(s);                                                         \
   }
