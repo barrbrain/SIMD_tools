@@ -32,11 +32,11 @@ static double print_median(struct timespec *const t, char *b, size_t n) {
     }
     double sse = 0;
     median = interval[(ROBUST_ITER + 1) >> 1];
-    for (i = 0; i < ROBUST_ITER; ++i) {
+    for (i = 1; i + 1 < ROBUST_ITER; ++i) {
       double d = interval[i] - median;
       sse += d * d;
     }
-    asprintf(&s, "%.1f±%.1fns ", median, sqrt(sse / ROBUST_ITER));
+    asprintf(&s, "%.1f±%.1fns ", median, sqrt(sse / (ROBUST_ITER - 2)));
     strlcat(b, s, n);
     free(s);
     return median;
