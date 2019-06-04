@@ -4,10 +4,11 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "barrbrain.simdtools"
-        minSdkVersion 23
+        minSdkVersion 21
+        maxSdkVersion 23
         targetSdkVersion 28
-        versionCode 1
-        versionName "1.0"
+        versionCode 11001
+        versionName "11.0.0.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
@@ -20,6 +21,9 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt')
+            ndk {
+                abiFilters "armeabi-v7a"
+            }
         }
     }
     externalNativeBuild {
@@ -27,25 +31,9 @@ android {
             path "CMakeLists.txt"
         }
     }
-    splits {
-        abi {
-            enable true
-            reset()
-            include "x86", "x86_64", "armeabi-v7a", "arm64-v8a"
-            universalApk false
-        }
-    }
-    def abiCodes = ['x86':1, 'x86_64':2, 'arm64-v8a':3, 'armeabi-v7a':4]
-    android.applicationVariants.all { variant ->
-        variant.outputs.each {
-            output ->
-                def abiName = output.getFilter('ABI')
-                output.versionCodeOverride = variant.versionCode * 1000 + abiCodes.get(abiName, 0)
-        }
-    }
 }
 
 dependencies {
     implementation 'com.android.support:appcompat-v7:28.0.0'
-    implementation 'com.android.support.constraint:constraint-layout:2.0.0-alpha4'
+    implementation 'com.android.support.constraint:constraint-layout:2.0.0-beta1'
 }

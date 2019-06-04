@@ -2,7 +2,11 @@
 #include <string>
 
 extern "C" void test_all(char *s, size_t n) {
+#ifdef __aarch64__
+    strncpy(s, "Hello, aarch64!\n", n);
+#else
     strncpy(s, "Hello, world!\n", n);
+#endif
 }
 
 extern "C"
