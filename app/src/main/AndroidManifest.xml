@@ -8,6 +8,9 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
+        android:extractNativeLibs="false"
+        android:multiArch="true"
+        android:use32bitAbi="true"
         tools:ignore="GoogleAppIndexingWarning,MissingApplicationIcon">
         <activity android:name=".MainActivity">
             <intent-filter>
